@@ -22,9 +22,20 @@ function generateOtp() {
 // Register - step 1: create user and send OTP
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role, adminSecret } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    let userRole = 'user';
+    if (role === 'admin') {
+      const expected = process.env.ADMIN_REGISTER_SECRET || 'management2026';
+      if (!adminSecret || adminSecret !== expected) {
+        return res.status(403).json({
+          message: 'Invalid management access code.',
+        });
+      }
+      userRole = 'admin';
     }
 
     const existing = await User.findOne({ email });
@@ -41,7 +52,7 @@ router.post('/register', async (req, res) => {
     await User.create({
       email,
       passwordHash,
-      role: 'user',
+      role: userRole,
       isVerified: false,
       otpCode,
       otpExpiresAt,

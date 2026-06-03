@@ -17,6 +17,12 @@ const FeedbackSchema = new mongoose.Schema(
       required: true,
       maxlength: 2000,
     },
+    category: {
+      type: String,
+      enum: ['classroom', 'food', 'campus', 'facilities', 'technology', 'other'],
+      default: 'other',
+      required: true,
+    },
   },
   { timestamps: true }
 );

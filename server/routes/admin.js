@@ -9,10 +9,15 @@ const router = express.Router();
 router.get('/feedback', auth, requireAdmin, async (_req, res) => {
   try {
     const feedbacks = await Feedback.find({})
-      .populate('user', 'email role')
+      .select('-user')
       .sort({ createdAt: -1 })
       .lean();
-    res.json(feedbacks);
+    res.json(
+      feedbacks.map((item) => ({
+        ...item,
+        submitter: 'Anonymous',
+      }))
+    );
   } catch (err) {
     console.error('Admin feedback error:', err);
     res.status(500).json({ message: 'Server error' });

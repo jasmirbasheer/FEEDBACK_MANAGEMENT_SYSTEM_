@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feedback Intelligence System</title>
+    <title>Futuristic Feedback Intelligence System</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
@@ -15,8 +15,8 @@
       </div>
       <div class="nav-status">
         <span id="user-email" class="pill pill-muted">Welcome. Please sign in.</span>
-        <button id="nav-login-btn" class="btn-neon">Login</button>
-        <button id="logout-btn" class="btn-neon" hidden>Logout</button>
+        <button type="button" id="nav-login-btn" class="btn-neon nav-auth-only-guest">Login</button>
+        <button type="button" id="logout-btn" class="btn-neon nav-auth-only-user">Logout</button>
       </div>
     </nav>
 
@@ -62,12 +62,27 @@
           </label>
           <label>
             <span>Password</span>
-            <input
-              type="password"
-              id="login-password"
-              autocomplete="current-password"
-              required
-            />
+            <div class="password-field">
+              <input
+                type="password"
+                id="login-password"
+                autocomplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                class="toggle-password"
+                data-target="login-password"
+                aria-label="Show password"
+              >
+                <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"
+                  />
+                </svg>
+              </button>
+            </div>
           </label>
           <button type="submit" class="btn-neon full-width">
             <span>Enter System</span>
@@ -81,13 +96,44 @@
             <input type="email" id="register-email" autocomplete="email" required />
           </label>
           <label>
-            <span>Password</span>
+            <span>Account type</span>
+            <select id="register-role" class="select-field">
+              <option value="user">User — submit feedback</option>
+              <option value="admin">Management — view all feedback</option>
+            </select>
+          </label>
+          <label id="admin-secret-wrap" class="admin-secret-wrap" hidden>
+            <span>Management access code</span>
             <input
-              type="password"
-              id="register-password"
-              autocomplete="new-password"
-              required
+              type="text"
+              id="register-admin-secret"
+              placeholder="Required for management accounts"
+              autocomplete="off"
             />
+          </label>
+          <label>
+            <span>Password</span>
+            <div class="password-field">
+              <input
+                type="password"
+                id="register-password"
+                autocomplete="new-password"
+                required
+              />
+              <button
+                type="button"
+                class="toggle-password"
+                data-target="register-password"
+                aria-label="Show password"
+              >
+                <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"
+                  />
+                </svg>
+              </button>
+            </div>
           </label>
           <button type="submit" class="btn-neon full-width">
             <span>Create Access</span>
@@ -134,6 +180,17 @@
             </p>
             <form id="feedback-form">
               <label>
+                <span>Category</span>
+                <select id="feedback-category" class="select-field" required>
+                  <option value="classroom">Classroom</option>
+                  <option value="food">Food</option>
+                  <option value="campus">Campus</option>
+                  <option value="facilities">Facilities</option>
+                  <option value="technology">Technology</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label>
                 <span>Title</span>
                 <input type="text" id="feedback-title" maxlength="150" required />
               </label>
@@ -173,8 +230,8 @@
       >
         <header class="dashboard-header">
           <div>
-            <h2>Admin God-View Grid</h2>
-            <p>Observe all feedback signals traversing the system in real time.</p>
+            <h2>Management Portal</h2>
+            <p>All feedback is anonymous. Review by category, date, and message.</p>
           </div>
           <div class="badge-row">
             <span class="pill pill-danger">ADMIN GOD-VIEW</span>
@@ -182,8 +239,19 @@
         </header>
         <div class="feedback-list glass-panel inner-panel slide-in-down">
           <div class="list-header">
-            <h3>Global Feedback Matrix</h3>
-            <button id="refresh-admin" class="btn-ghost">Rescan All</button>
+            <h3>All user feedback</h3>
+            <div class="admin-toolbar">
+              <select id="admin-category-filter" class="select-field select-field-inline">
+                <option value="all">All categories</option>
+                <option value="classroom">Classroom</option>
+                <option value="food">Food</option>
+                <option value="campus">Campus</option>
+                <option value="facilities">Facilities</option>
+                <option value="technology">Technology</option>
+                <option value="other">Other</option>
+              </select>
+              <button id="refresh-admin" class="btn-ghost">Rescan All</button>
+            </div>
           </div>
           <div id="admin-cards" class="card-grid god-grid"></div>
           <div id="admin-empty" class="empty-state" hidden>

@@ -4,18 +4,32 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+const VALID_CATEGORIES = [
+  'classroom',
+  'food',
+  'campus',
+  'facilities',
+  'technology',
+  'other',
+];
+
 // Create feedback
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, message } = req.body;
+    const { title, message, category } = req.body;
     if (!title || !message) {
       return res.status(400).json({ message: 'Title and message are required' });
+    }
+    const cat = category || 'other';
+    if (!VALID_CATEGORIES.includes(cat)) {
+      return res.status(400).json({ message: 'Invalid category' });
     }
 
     const feedback = await Feedback.create({
       user: req.user.id,
       title,
       message,
+      category: cat,
     });
 
     res.status(201).json(feedback);
@@ -41,7 +55,7 @@ router.get('/', auth, async (req, res) => {
 // Update feedback with 15-minute rule
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title, message } = req.body;
+    const { title, message, category } = req.body;
     const feedback = await Feedback.findById(req.params.id);
 
     if (!feedback) {
@@ -64,6 +78,12 @@ router.put('/:id', auth, async (req, res) => {
 
     if (title !== undefined) feedback.title = title;
     if (message !== undefined) feedback.message = message;
+    if (category !== undefined) {
+      if (!VALID_CATEGORIES.includes(category)) {
+        return res.status(400).json({ message: 'Invalid category' });
+      }
+      feedback.category = category;
+    }
 
     await feedback.save();
     res.json(feedback);

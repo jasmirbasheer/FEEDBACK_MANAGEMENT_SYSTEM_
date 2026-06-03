@@ -115,6 +115,103 @@ body {
   gap: 10px;
 }
 
+/* Nav: Login when guest, Logout only when signed in */
+.nav-auth-only-user {
+  display: none !important;
+}
+
+body.logged-in .nav-auth-only-guest {
+  display: none !important;
+}
+
+body.logged-in .nav-auth-only-user {
+  display: inline-flex !important;
+}
+
+body:not(.logged-in) .nav-auth-only-guest {
+  display: inline-flex !important;
+}
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-password .icon-eye {
+  width: 20px;
+  height: 20px;
+}
+
+.toggle-password.is-visible .icon-eye {
+  opacity: 0.55;
+}
+
+.select-field {
+  border-radius: 999px;
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  background: rgba(3, 10, 20, 0.9);
+  color: var(--text-main);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  outline: none;
+  width: 100%;
+}
+
+.category-pill {
+  display: inline-block;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 242, 255, 0.45);
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+  margin-bottom: 6px;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.select-field-inline {
+  width: auto;
+  min-width: 140px;
+  font-size: 0.78rem;
+  padding: 6px 10px;
+}
+
+.admin-secret-wrap input {
+  border-radius: 999px;
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  background: rgba(3, 10, 20, 0.9);
+  color: var(--text-main);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
 .hud-main {
   padding: 110px 16px 40px;
   display: flex;

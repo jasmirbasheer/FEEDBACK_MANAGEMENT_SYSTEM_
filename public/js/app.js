@@ -35,6 +35,20 @@
   let countdownIntervals = new Map(); // id -> intervalId
   let editingFeedbackId = null;
   let pendingEmailForOtp = '';
+  let allAdminFeedback = [];
+
+  const CATEGORY_LABELS = {
+    classroom: 'Classroom',
+    food: 'Food',
+    campus: 'Campus',
+    facilities: 'Facilities',
+    technology: 'Technology',
+    other: 'Other',
+  };
+
+  function categoryLabel(key) {
+    return CATEGORY_LABELS[key] || 'Other';
+  }
 
   function showToast(text, duration = 2600) {
     if (!toastEl) return;
@@ -60,24 +74,30 @@
   }
 
   function updateUIForAuth() {
-    if (authUser && authToken) {
+    const loggedIn = !!(authUser && authToken);
+    document.body.classList.toggle('logged-in', loggedIn);
+
+    if (loggedIn) {
       authSection.hidden = true;
-      dashboardSection.hidden = false;
-      if (navLoginBtn) navLoginBtn.hidden = true;
-      logoutBtn.hidden = false;
       userEmailEl.textContent = authUser.email;
-      rolePill.textContent = `ROLE: ${authUser.role.toUpperCase()}`;
-      if (authUser.role === 'admin') {
+
+      const isAdmin = authUser.role === 'admin';
+      if (rolePill) {
+        rolePill.textContent = isAdmin ? 'ROLE: MANAGEMENT' : 'ROLE: USER';
+      }
+
+      if (isAdmin) {
+        dashboardSection.hidden = true;
         adminSection.hidden = false;
+        fetchAdminFeedback();
       } else {
+        dashboardSection.hidden = false;
         adminSection.hidden = true;
       }
     } else {
       authSection.hidden = false;
       dashboardSection.hidden = true;
       adminSection.hidden = true;
-      if (navLoginBtn) navLoginBtn.hidden = false;
-      logoutBtn.hidden = true;
       userEmailEl.textContent = 'Welcome. Please sign in.';
       clearAllCountdowns();
     }
@@ -152,10 +172,22 @@
       return;
     }
 
+    const payload = { email, password };
+    if (mode === 'register') {
+      const roleSelect = document.getElementById('register-role');
+      const role = roleSelect ? roleSelect.value : 'user';
+      payload.role = role;
+      if (role === 'admin') {
+        payload.adminSecret = (
+          document.getElementById('register-admin-secret')?.value || ''
+        ).trim();
+      }
+    }
+
     try {
       const data = await apiRequest(`/auth/${mode}`, {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(payload),
       });
       if (mode === 'register') {
         // Move to OTP verification step
@@ -166,9 +198,10 @@
       } else {
         setAuthState(data.token, data.user);
         showToast('Access granted.');
-        fetchFeedback();
         if (data.user.role === 'admin') {
           fetchAdminFeedback();
+        } else {
+          fetchFeedback();
         }
       }
     } catch (err) {
@@ -192,7 +225,8 @@
     if (!authToken || !authUser || authUser.role !== 'admin') return;
     try {
       const data = await apiRequest('/admin/feedback', { method: 'GET' });
-      renderAdminCards(data);
+      allAdminFeedback = data || [];
+      applyAdminCategoryFilter();
     } catch (err) {
       showToast(err.message || 'Failed to fetch admin grid');
       throw err;
@@ -272,12 +306,16 @@
 
       const meta = document.createElement('div');
       meta.className = 'card-meta';
-      meta.innerHTML = `<span>Created</span><span>${formatDate(
+      meta.innerHTML = `<span>${categoryLabel(item.category)}</span><span>${formatDate(
         item.createdAt
       )}</span>`;
 
       header.appendChild(titleEl);
       header.appendChild(meta);
+
+      const catPill = document.createElement('span');
+      catPill.className = 'category-pill';
+      catPill.textContent = categoryLabel(item.category);
 
       const body = document.createElement('div');
       body.className = 'card-body';
@@ -311,6 +349,7 @@
       footer.appendChild(actions);
 
       card.appendChild(header);
+      card.appendChild(catPill);
       card.appendChild(body);
       card.appendChild(footer);
 
@@ -342,23 +381,38 @@
 
       const meta = document.createElement('div');
       meta.className = 'card-meta';
-      const owner = item.user && item.user.email ? item.user.email : 'Unknown';
-      meta.innerHTML = `<span>${owner}</span><span>${formatDate(
+      meta.innerHTML = `<span>From: Anonymous</span><span>${formatDate(
         item.createdAt
       )}</span>`;
 
       header.appendChild(titleEl);
       header.appendChild(meta);
 
+      const catPill = document.createElement('span');
+      catPill.className = 'category-pill';
+      catPill.textContent = categoryLabel(item.category);
+
       const body = document.createElement('div');
       body.className = 'card-body';
       body.textContent = item.message;
 
       card.appendChild(header);
+      card.appendChild(catPill);
       card.appendChild(body);
 
       adminCards.appendChild(card);
     });
+  }
+
+  function applyAdminCategoryFilter() {
+    const filterEl = document.getElementById('admin-category-filter');
+    const value = filterEl ? filterEl.value : 'all';
+    if (value === 'all') {
+      renderAdminCards(allAdminFeedback);
+      return;
+    }
+    const filtered = allAdminFeedback.filter((item) => item.category === value);
+    renderAdminCards(filtered);
   }
 
   function openEditModal(item) {
@@ -372,6 +426,7 @@
     e.preventDefault();
     const title = document.getElementById('feedback-title').value.trim();
     const message = document.getElementById('feedback-message').value.trim();
+    const category = document.getElementById('feedback-category')?.value || 'other';
     if (!title || !message) {
       showToast('Title & message required.');
       return;
@@ -379,7 +434,7 @@
     try {
       await apiRequest('/feedback', {
         method: 'POST',
-        body: JSON.stringify({ title, message }),
+        body: JSON.stringify({ title, message, category }),
       });
       feedbackForm.reset();
       showToast('Feedback captured.');
@@ -430,9 +485,10 @@
         });
         setAuthState(data.token, data.user);
         showToast('Account verified.');
-        fetchFeedback();
         if (data.user.role === 'admin') {
           fetchAdminFeedback();
+        } else {
+          fetchFeedback();
         }
       } catch (err) {
         authMessage.textContent = err.message;
@@ -445,15 +501,41 @@
     refreshAdminBtn.addEventListener('click', fetchAdminFeedback);
   }
 
+  const adminCategoryFilter = document.getElementById('admin-category-filter');
+  if (adminCategoryFilter) {
+    adminCategoryFilter.addEventListener('change', applyAdminCategoryFilter);
+  }
+
   logoutBtn.addEventListener('click', logout);
 
   if (heroCta && authSection) {
     heroCta.addEventListener('click', () => {
       authSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      switchConsole('login');
+    });
+  }
+
+  document.querySelectorAll('.toggle-password').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.classList.toggle('is-visible', show);
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+  });
+
+  const registerRole = document.getElementById('register-role');
+  const adminSecretWrap = document.getElementById('admin-secret-wrap');
+  if (registerRole && adminSecretWrap) {
+    registerRole.addEventListener('change', () => {
+      adminSecretWrap.hidden = registerRole.value !== 'admin';
     });
   }
 
   // Default to login view and ensure a clean logged-out state.
+  document.body.classList.remove('logged-in');
   switchConsole('login');
   restoreAuth();
 })();

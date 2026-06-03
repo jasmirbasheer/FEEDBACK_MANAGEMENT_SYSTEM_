@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: full feedback system with auth, admin god-view, edit window, and glassmorphism UI *)"
+    ]
+  }
+}
