@@ -1,5 +1,5 @@
 (() => {
-  const API_BASE = 'http://feedback-management-system-tqsz.onrender.com/api';
+  const API_BASE = '/api';
 
   const heroCta = document.getElementById('hero-cta');
   const authSection = document.getElementById('auth-section');
