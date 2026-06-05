@@ -22,7 +22,10 @@ function generateOtp() {
 // Register - step 1: create user and send OTP
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, role, adminSecret } = req.body;
+    const { name, email, password, role, adminSecret } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
@@ -50,6 +53,7 @@ router.post('/register', async (req, res) => {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await User.create({
+      name: name.trim(),
       email,
       passwordHash,
       role: userRole,
@@ -105,7 +109,12 @@ router.post('/verify-otp', async (req, res) => {
     const token = signToken(user);
     res.json({
       token,
-      user: { id: user._id, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error('Verify OTP error:', err);
@@ -140,7 +149,12 @@ router.post('/login', async (req, res) => {
     const token = signToken(user);
     res.json({
       token,
-      user: { id: user._id, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error('Login error:', err);

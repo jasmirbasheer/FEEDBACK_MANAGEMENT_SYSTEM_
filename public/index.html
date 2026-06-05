@@ -92,6 +92,17 @@
 
         <form id="register-form" class="console-form">
           <label>
+            <span>Full name</span>
+            <input
+              type="text"
+              id="register-name"
+              autocomplete="name"
+              maxlength="80"
+              placeholder="Your name"
+              required
+            />
+          </label>
+          <label>
             <span>Email</span>
             <input type="email" id="register-email" autocomplete="email" required />
           </label>
@@ -102,12 +113,12 @@
               <option value="admin">Management — view all feedback</option>
             </select>
           </label>
-          <label id="admin-secret-wrap" class="admin-secret-wrap" hidden>
+          <label id="admin-secret-wrap" class="admin-secret-wrap is-hidden">
             <span>Management access code</span>
             <input
               type="text"
               id="register-admin-secret"
-              placeholder="Required for management accounts"
+              placeholder="Enter management access code"
               autocomplete="off"
             />
           </label>
@@ -180,6 +191,14 @@
             </p>
             <form id="feedback-form">
               <label>
+                <span>Priority</span>
+                <select id="feedback-priority" class="select-field" required>
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <label>
                 <span>Category</span>
                 <select id="feedback-category" class="select-field" required>
                   <option value="classroom">Classroom</option>
@@ -237,10 +256,17 @@
             <span class="pill pill-danger">ADMIN GOD-VIEW</span>
           </div>
         </header>
+        <div id="admin-stats" class="admin-stats glass-panel inner-panel"></div>
         <div class="feedback-list glass-panel inner-panel slide-in-down">
           <div class="list-header">
             <h3>All user feedback</h3>
             <div class="admin-toolbar">
+              <select id="admin-status-filter" class="select-field select-field-inline">
+                <option value="all">All statuses</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In progress</option>
+                <option value="resolved">Resolved</option>
+              </select>
               <select id="admin-category-filter" class="select-field select-field-inline">
                 <option value="all">All categories</option>
                 <option value="classroom">Classroom</option>
@@ -260,6 +286,49 @@
         </div>
       </section>
     </main>
+
+    <div id="edit-modal-backdrop" class="modal-backdrop is-hidden">
+      <div class="modal glass-panel">
+        <div class="modal-header">
+          <h3>Edit Feedback</h3>
+          <button type="button" id="edit-modal-close" class="btn-icon">&times;</button>
+        </div>
+        <form id="edit-form">
+          <label>
+            <span>Priority</span>
+            <select id="edit-priority" class="select-field" required>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label>
+            <span>Category</span>
+            <select id="edit-category" class="select-field" required>
+              <option value="classroom">Classroom</option>
+              <option value="food">Food</option>
+              <option value="campus">Campus</option>
+              <option value="facilities">Facilities</option>
+              <option value="technology">Technology</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>
+            <span>Title</span>
+            <input type="text" id="edit-title" maxlength="150" required />
+          </label>
+          <label>
+            <span>Message</span>
+            <textarea id="edit-message" maxlength="2000" rows="4" required></textarea>
+          </label>
+          <button type="submit" class="btn-neon full-width">
+            <span>Save changes</span>
+            <span class="btn-scan"></span>
+          </button>
+          <div id="edit-form-message" class="console-message"></div>
+        </form>
+      </div>
+    </div>
 
     <div id="toast" class="toast" hidden></div>
 

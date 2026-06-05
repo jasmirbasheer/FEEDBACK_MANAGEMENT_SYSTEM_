@@ -13,10 +13,12 @@ const VALID_CATEGORIES = [
   'other',
 ];
 
+const VALID_PRIORITIES = ['low', 'medium', 'high'];
+
 // Create feedback
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, message, category } = req.body;
+    const { title, message, category, priority } = req.body;
     if (!title || !message) {
       return res.status(400).json({ message: 'Title and message are required' });
     }
@@ -25,11 +27,17 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid category' });
     }
 
+    const pri = priority || 'medium';
+    if (!VALID_PRIORITIES.includes(pri)) {
+      return res.status(400).json({ message: 'Invalid priority' });
+    }
+
     const feedback = await Feedback.create({
       user: req.user.id,
       title,
       message,
       category: cat,
+      priority: pri,
     });
 
     res.status(201).json(feedback);
@@ -55,7 +63,7 @@ router.get('/', auth, async (req, res) => {
 // Update feedback with 15-minute rule
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title, message, category } = req.body;
+    const { title, message, category, priority } = req.body;
     const feedback = await Feedback.findById(req.params.id);
 
     if (!feedback) {
@@ -83,6 +91,12 @@ router.put('/:id', auth, async (req, res) => {
         return res.status(400).json({ message: 'Invalid category' });
       }
       feedback.category = category;
+    }
+    if (priority !== undefined) {
+      if (!VALID_PRIORITIES.includes(priority)) {
+        return res.status(400).json({ message: 'Invalid priority' });
+      }
+      feedback.priority = priority;
     }
 
     await feedback.save();

@@ -26,7 +26,20 @@
 
   const adminCards = document.getElementById('admin-cards');
   const adminEmpty = document.getElementById('admin-empty');
+  const adminStatsEl = document.getElementById('admin-stats');
   const refreshAdminBtn = document.getElementById('refresh-admin');
+
+  const editModalBackdrop = document.getElementById('edit-modal-backdrop');
+  const editModalClose = document.getElementById('edit-modal-close');
+  const editForm = document.getElementById('edit-form');
+  const editTitle = document.getElementById('edit-title');
+  const editMessage = document.getElementById('edit-message');
+  const editCategory = document.getElementById('edit-category');
+  const editFormMessage = document.getElementById('edit-form-message');
+
+  const registerRole = document.getElementById('register-role');
+  const adminSecretWrap = document.getElementById('admin-secret-wrap');
+  const adminSecretInput = document.getElementById('register-admin-secret');
 
   const toastEl = document.getElementById('toast');
 
@@ -46,8 +59,23 @@
     other: 'Other',
   };
 
+  const PRIORITY_LABELS = { low: 'Low', medium: 'Medium', high: 'High' };
+  const STATUS_LABELS = {
+    open: 'Open',
+    in_progress: 'In progress',
+    resolved: 'Resolved',
+  };
+
   function categoryLabel(key) {
     return CATEGORY_LABELS[key] || 'Other';
+  }
+
+  function priorityLabel(key) {
+    return PRIORITY_LABELS[key] || 'Medium';
+  }
+
+  function statusLabel(key) {
+    return STATUS_LABELS[key] || 'Open';
   }
 
   function showToast(text, duration = 2600) {
@@ -79,7 +107,9 @@
 
     if (loggedIn) {
       authSection.hidden = true;
-      userEmailEl.textContent = authUser.email;
+      userEmailEl.textContent = authUser.name
+        ? `Hi, ${authUser.name}`
+        : authUser.email;
 
       const isAdmin = authUser.role === 'admin';
       if (rolePill) {
@@ -90,6 +120,7 @@
         dashboardSection.hidden = true;
         adminSection.hidden = false;
         fetchAdminFeedback();
+        fetchAdminStats();
       } else {
         dashboardSection.hidden = false;
         adminSection.hidden = true;
@@ -122,11 +153,22 @@
     } else if (mode === 'register') {
       toggleRegisterBtn.classList.add('active');
       registerForm.classList.add('active');
+      syncRegisterRoleFields();
     } else if (mode === 'otp') {
       if (otpForm) otpForm.classList.add('active');
     }
 
     authMessage.textContent = '';
+  }
+
+  function syncRegisterRoleFields() {
+    if (!registerRole || !adminSecretWrap || !adminSecretInput) return;
+    const isAdmin = registerRole.value === 'admin';
+    adminSecretWrap.classList.toggle('is-hidden', !isAdmin);
+    adminSecretInput.required = isAdmin;
+    if (!isAdmin) {
+      adminSecretInput.value = '';
+    }
   }
 
   async function apiRequest(path, options = {}) {
@@ -174,13 +216,20 @@
 
     const payload = { email, password };
     if (mode === 'register') {
-      const roleSelect = document.getElementById('register-role');
-      const role = roleSelect ? roleSelect.value : 'user';
+      const name = document.getElementById('register-name')?.value.trim();
+      if (!name) {
+        authMessage.textContent = 'Name is required.';
+        return;
+      }
+      payload.name = name;
+      const role = registerRole ? registerRole.value : 'user';
       payload.role = role;
       if (role === 'admin') {
-        payload.adminSecret = (
-          document.getElementById('register-admin-secret')?.value || ''
-        ).trim();
+        payload.adminSecret = (adminSecretInput?.value || '').trim();
+        if (!payload.adminSecret) {
+          authMessage.textContent = 'Management access code is required.';
+          return;
+        }
       }
     }
 
@@ -200,6 +249,7 @@
         showToast('Access granted.');
         if (data.user.role === 'admin') {
           fetchAdminFeedback();
+          fetchAdminStats();
         } else {
           fetchFeedback();
         }
@@ -231,6 +281,34 @@
       showToast(err.message || 'Failed to fetch admin grid');
       throw err;
     }
+  }
+
+  async function fetchAdminStats() {
+    if (!authToken || !authUser || authUser.role !== 'admin' || !adminStatsEl) return;
+    try {
+      const data = await apiRequest('/admin/stats', { method: 'GET' });
+      renderAdminStats(data);
+    } catch (err) {
+      showToast(err.message || 'Failed to load stats');
+    }
+  }
+
+  function renderAdminStats(data) {
+    if (!adminStatsEl || !data) return;
+    const cats = data.categoryCounts || {};
+    adminStatsEl.innerHTML = `
+      <div class="stat-card"><span class="stat-label">Total users</span><span class="stat-value">${data.userCount || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Total feedback</span><span class="stat-value">${data.feedbackCount || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Classroom</span><span class="stat-value">${cats.classroom || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Food</span><span class="stat-value">${cats.food || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Campus</span><span class="stat-value">${cats.campus || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Facilities</span><span class="stat-value">${cats.facilities || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Technology</span><span class="stat-value">${cats.technology || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Other</span><span class="stat-value">${cats.other || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Open</span><span class="stat-value">${(data.statusCounts && data.statusCounts.open) || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">In progress</span><span class="stat-value">${(data.statusCounts && data.statusCounts.in_progress) || 0}</span></div>
+      <div class="stat-card"><span class="stat-label">Resolved</span><span class="stat-value">${(data.statusCounts && data.statusCounts.resolved) || 0}</span></div>
+    `;
   }
 
   function formatDate(ts) {
@@ -313,9 +391,16 @@
       header.appendChild(titleEl);
       header.appendChild(meta);
 
+      const tagRow = document.createElement('div');
+      const priPill = document.createElement('span');
+      priPill.className = 'priority-pill';
+      priPill.dataset.priority = item.priority || 'medium';
+      priPill.textContent = priorityLabel(item.priority);
       const catPill = document.createElement('span');
       catPill.className = 'category-pill';
       catPill.textContent = categoryLabel(item.category);
+      tagRow.appendChild(priPill);
+      tagRow.appendChild(catPill);
 
       const body = document.createElement('div');
       body.className = 'card-body';
@@ -349,7 +434,7 @@
       footer.appendChild(actions);
 
       card.appendChild(header);
-      card.appendChild(catPill);
+      card.appendChild(tagRow);
       card.appendChild(body);
       card.appendChild(footer);
 
@@ -388,38 +473,115 @@
       header.appendChild(titleEl);
       header.appendChild(meta);
 
+      const tagRow = document.createElement('div');
+      const priPill = document.createElement('span');
+      priPill.className = 'priority-pill';
+      priPill.dataset.priority = item.priority || 'medium';
+      priPill.textContent = priorityLabel(item.priority);
       const catPill = document.createElement('span');
       catPill.className = 'category-pill';
       catPill.textContent = categoryLabel(item.category);
+      tagRow.appendChild(priPill);
+      tagRow.appendChild(catPill);
 
       const body = document.createElement('div');
       body.className = 'card-body';
       body.textContent = item.message;
 
+      const statusRow = document.createElement('div');
+      statusRow.className = 'card-footer';
+      const statusSelect = document.createElement('select');
+      statusSelect.className = 'status-select';
+      ['open', 'in_progress', 'resolved'].forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = statusLabel(s);
+        if ((item.status || 'open') === s) opt.selected = true;
+        statusSelect.appendChild(opt);
+      });
+      statusSelect.addEventListener('change', async () => {
+        try {
+          await apiRequest(`/admin/feedback/${item._id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: statusSelect.value }),
+          });
+          item.status = statusSelect.value;
+          showToast('Status updated.');
+          fetchAdminStats();
+        } catch (err) {
+          showToast(err.message || 'Status update failed');
+          statusSelect.value = item.status || 'open';
+        }
+      });
+      statusRow.appendChild(statusSelect);
+
       card.appendChild(header);
-      card.appendChild(catPill);
+      card.appendChild(tagRow);
       card.appendChild(body);
+      card.appendChild(statusRow);
 
       adminCards.appendChild(card);
     });
   }
 
   function applyAdminCategoryFilter() {
-    const filterEl = document.getElementById('admin-category-filter');
-    const value = filterEl ? filterEl.value : 'all';
-    if (value === 'all') {
-      renderAdminCards(allAdminFeedback);
-      return;
+    const catEl = document.getElementById('admin-category-filter');
+    const statusEl = document.getElementById('admin-status-filter');
+    const cat = catEl ? catEl.value : 'all';
+    const status = statusEl ? statusEl.value : 'all';
+
+    let filtered = allAdminFeedback;
+    if (cat !== 'all') {
+      filtered = filtered.filter((item) => item.category === cat);
     }
-    const filtered = allAdminFeedback.filter((item) => item.category === value);
+    if (status !== 'all') {
+      filtered = filtered.filter((item) => (item.status || 'open') === status);
+    }
     renderAdminCards(filtered);
   }
 
   function openEditModal(item) {
-    // For simplicity, just alert that editing is locked or allowed based on timer;
-    // actual edit UI could be added here later if needed.
     editingFeedbackId = item._id;
-    showToast('Editing is only allowed within 15 minutes of creation.');
+    if (editTitle) editTitle.value = item.title;
+    if (editMessage) editMessage.value = item.message;
+    if (editCategory) editCategory.value = item.category || 'other';
+    const editPriority = document.getElementById('edit-priority');
+    if (editPriority) editPriority.value = item.priority || 'medium';
+    if (editFormMessage) editFormMessage.textContent = '';
+    if (editModalBackdrop) editModalBackdrop.classList.remove('is-hidden');
+  }
+
+  function closeEditModal() {
+    editingFeedbackId = null;
+    if (editModalBackdrop) editModalBackdrop.classList.add('is-hidden');
+  }
+
+  async function submitEdit(e) {
+    e.preventDefault();
+    if (!editingFeedbackId) return;
+    const title = editTitle?.value.trim();
+    const message = editMessage?.value.trim();
+    const category = editCategory?.value || 'other';
+    const priority = document.getElementById('edit-priority')?.value || 'medium';
+    if (!title || !message) {
+      if (editFormMessage) editFormMessage.textContent = 'Title and message required.';
+      return;
+    }
+    try {
+      await apiRequest(`/feedback/${editingFeedbackId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ title, message, category, priority }),
+      });
+      closeEditModal();
+      showToast('Feedback updated.');
+      fetchFeedback();
+    } catch (err) {
+      if (editFormMessage) editFormMessage.textContent = err.message;
+      if (err.message.toLowerCase().includes('expired')) {
+        closeEditModal();
+        fetchFeedback();
+      }
+    }
   }
 
   async function submitFeedback(e) {
@@ -427,6 +589,7 @@
     const title = document.getElementById('feedback-title').value.trim();
     const message = document.getElementById('feedback-message').value.trim();
     const category = document.getElementById('feedback-category')?.value || 'other';
+    const priority = document.getElementById('feedback-priority')?.value || 'medium';
     if (!title || !message) {
       showToast('Title & message required.');
       return;
@@ -434,7 +597,7 @@
     try {
       await apiRequest('/feedback', {
         method: 'POST',
-        body: JSON.stringify({ title, message, category }),
+        body: JSON.stringify({ title, message, category, priority }),
       });
       feedbackForm.reset();
       showToast('Feedback captured.');
@@ -487,6 +650,7 @@
         showToast('Account verified.');
         if (data.user.role === 'admin') {
           fetchAdminFeedback();
+          fetchAdminStats();
         } else {
           fetchFeedback();
         }
@@ -498,12 +662,27 @@
   }
 
   if (refreshAdminBtn) {
-    refreshAdminBtn.addEventListener('click', fetchAdminFeedback);
+    refreshAdminBtn.addEventListener('click', () => {
+      fetchAdminFeedback();
+      fetchAdminStats();
+    });
   }
 
+  if (editModalClose) editModalClose.addEventListener('click', closeEditModal);
+  if (editModalBackdrop) {
+    editModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === editModalBackdrop) closeEditModal();
+    });
+  }
+  if (editForm) editForm.addEventListener('submit', submitEdit);
+
   const adminCategoryFilter = document.getElementById('admin-category-filter');
+  const adminStatusFilter = document.getElementById('admin-status-filter');
   if (adminCategoryFilter) {
     adminCategoryFilter.addEventListener('change', applyAdminCategoryFilter);
+  }
+  if (adminStatusFilter) {
+    adminStatusFilter.addEventListener('change', applyAdminCategoryFilter);
   }
 
   logoutBtn.addEventListener('click', logout);
@@ -526,16 +705,13 @@
     });
   });
 
-  const registerRole = document.getElementById('register-role');
-  const adminSecretWrap = document.getElementById('admin-secret-wrap');
-  if (registerRole && adminSecretWrap) {
-    registerRole.addEventListener('change', () => {
-      adminSecretWrap.hidden = registerRole.value !== 'admin';
-    });
+  if (registerRole) {
+    registerRole.addEventListener('change', syncRegisterRoleFields);
   }
 
   // Default to login view and ensure a clean logged-out state.
   document.body.classList.remove('logged-in');
+  syncRegisterRoleFields();
   switchConsole('login');
   restoreAuth();
 })();

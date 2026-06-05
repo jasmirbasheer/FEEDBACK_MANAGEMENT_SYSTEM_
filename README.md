@@ -40,6 +40,29 @@ npm run dev
 npm start
 ```
 
+### Deploy (Render / Railway)
+
+1. Push this project to GitHub.
+2. Create a new **Web Service** on Render or Railway.
+3. Set **Build command**: `npm install`
+4. Set **Start command**: `npm start`
+5. Add environment variables from `.env`:
+   - `MONGO_URI`, `JWT_SECRET`, `PORT` (often `4000` or platform default)
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`
+   - `ADMIN_REGISTER_SECRET`
+6. In MongoDB Atlas → **Network Access** → allow `0.0.0.0/0` (or platform IPs).
+7. Open the deployed URL in the browser.
+
+### Assessment highlights (for demo/viva)
+
+- JWT auth + bcrypt password hashing
+- Email OTP verification on registration
+- Role-based access: **User** vs **Management**
+- Anonymous feedback in admin portal (privacy)
+- Category-based feedback + admin filter + analytics stats
+- 15-minute edit window enforced on backend (403 after expiry)
+- Full-stack: Express API + MongoDB + vanilla frontend
+
 ### Auth & Roles
 
 - **Register**: `POST /api/auth/register` – returns `{ token, user }`

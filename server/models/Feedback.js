@@ -23,6 +23,16 @@ const FeedbackSchema = new mongoose.Schema(
       default: 'other',
       required: true,
     },
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium',
+    },
+    status: {
+      type: String,
+      enum: ['open', 'in_progress', 'resolved'],
+      default: 'open',
+    },
   },
   { timestamps: true }
 );
